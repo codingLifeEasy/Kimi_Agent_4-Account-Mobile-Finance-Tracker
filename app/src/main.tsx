@@ -6,7 +6,7 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/Kimi_Agent_4-Account-Mobile-Finance-Tracker/">
       <App />
     </BrowserRouter>
   </StrictMode>,

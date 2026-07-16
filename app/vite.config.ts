@@ -5,7 +5,7 @@ import { inspectAttr } from 'kimi-plugin-inspect-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/Kimi_Agent_4-Account-Mobile-Finance-Tracker/',
   plugins: [inspectAttr(), react()],
   server: {
     port: 3000,
