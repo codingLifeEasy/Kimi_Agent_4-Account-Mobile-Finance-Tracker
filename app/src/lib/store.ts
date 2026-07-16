@@ -42,6 +42,9 @@ export function useTransactions(): Transaction[] {
         } as Transaction;
       });
       setTransactions(txs);
+    }, (error) => {
+      console.error("Firestore sync error:", error);
+      alert("Error syncing data: " + error.message);
     });
 
     return () => unsubscribe();

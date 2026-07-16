@@ -38,12 +38,17 @@ export default function AddExpense() {
     setNote('');
   };
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    txStore.add({ date, account, category, amount, note: note.trim() });
-    reset();
-    setSavedFlash(true);
-    window.setTimeout(() => setSavedFlash(false), 1600);
+    try {
+      await txStore.add({ date, account, category, amount, note: note.trim() });
+      reset();
+      setSavedFlash(true);
+      window.setTimeout(() => setSavedFlash(false), 1600);
+    } catch (error: any) {
+      alert("Failed to save transaction to the cloud: " + error.message);
+      console.error(error);
+    }
   };
 
   return (
