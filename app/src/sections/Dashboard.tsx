@@ -151,7 +151,7 @@ export default function Dashboard() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-            <Tooltip formatter={(v) => formatINR(Number(v))} />
+            <Tooltip formatter={(v: any) => formatINR(Number(v))} />
             <Area type="monotone" dataKey="value" stroke="#059669" strokeWidth={2} fill="url(#grad)" />
           </AreaChart>
         </ResponsiveContainer>
@@ -175,7 +175,7 @@ export default function Dashboard() {
                   <Cell key={c.name} fill={c.color} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => formatINR(Number(v))} />
+              <Tooltip formatter={(v: any) => formatINR(Number(v))} />
             </PieChart>
           </ResponsiveContainer>
           <div className="w-full space-y-1.5">
@@ -204,7 +204,7 @@ export default function Dashboard() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-            <Tooltip formatter={(v) => formatINR(Number(v))} cursor={{ fill: '#f1f5f9' }} />
+            <Tooltip formatter={(v: any) => formatINR(Number(v))} cursor={{ fill: '#f1f5f9' }} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={44}>
               {byAccount.map((a) => (
                 <Cell key={a.name} fill={a.color} />

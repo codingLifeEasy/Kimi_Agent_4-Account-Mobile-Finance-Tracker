@@ -1,13 +1,12 @@
 import { Suspense, lazy, useState } from 'react';
 import AddExpense from '@/sections/AddExpense';
 import History from '@/sections/History';
-import { useTransactions } from '@/lib/store';
+import { useTransactions, useAuth } from '@/lib/store';
+import Login from '@/components/Login';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
-// xlsx is heavy — load it only when the user actually downloads
-const downloadExcel = async (tx: Parameters<typeof import('@/lib/export').exportToExcel>[0]) => {
-  const { exportToExcel } = await import('@/lib/export');
-  exportToExcel(tx);
-};
+
 const downloadCSV = async (tx: Parameters<typeof import('@/lib/export').exportToCSV>[0]) => {
   const { exportToCSV } = await import('@/lib/export');
   exportToCSV(tx);
@@ -21,9 +20,22 @@ type Tab = 'add' | 'history' | 'dashboard';
 export default function App() {
   const [tab, setTab] = useState<Tab>('add');
   const transactions = useTransactions();
+  const user = useAuth();
+
+  if (user === undefined) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
+        Loading...
+      </div>
+    );
+  }
+
+  if (user === null) {
+    return <Login />;
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-16">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-emerald-900/10 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3 md:max-w-3xl">
@@ -35,22 +47,21 @@ export default function App() {
               Paisa Track
             </h1>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => transactions.length && downloadExcel(transactions)}
-              disabled={transactions.length === 0}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-40"
-              title="Download Excel file"
-            >
-              ⬇ Excel
-            </button>
+          <div className="flex gap-2 items-center">
             <button
               onClick={() => transactions.length && downloadCSV(transactions)}
               disabled={transactions.length === 0}
               className="rounded-lg border border-emerald-600 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50 active:scale-95 disabled:opacity-40"
               title="Download CSV file"
             >
-              ⬇ CSV
+              CSV
+            </button>
+            <button
+              onClick={() => signOut(auth)}
+              className="text-xs font-bold text-red-500 hover:text-red-600 transition"
+              title="Logout"
+            >
+              Logout
             </button>
           </div>
         </div>

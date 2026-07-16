@@ -1,67 +1,78 @@
-import { useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, query, onSnapshot, addDoc, deleteDoc, doc, orderBy, writeBatch, getDocs, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import type { User } from 'firebase/auth';
+import { db, auth } from '@/lib/firebase';
 import type { Transaction } from '@/types';
 
-const STORAGE_KEY = 'paisa-track-transactions-v1';
-
-function load(): Transaction[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+// Global user state hook
+export function useAuth() {
+  const [user, setUser] = useState<User | null | undefined>(undefined); // undefined = loading
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
+  return user;
 }
 
-let cache: Transaction[] = load();
-const listeners = new Set<() => void>();
+// Subscribe to Firestore transactions
+export function useTransactions(): Transaction[] {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const user = useAuth();
 
-function persist() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-  } catch {
-    // storage full — keep app running
-  }
-}
+  useEffect(() => {
+    if (!user) {
+      setTransactions([]);
+      return;
+    }
 
-function emit() {
-  listeners.forEach((l) => l());
+    const q = query(
+      collection(db, `users/${user.uid}/transactions`),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const txs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          // Convert Firestore Timestamp to number for our app
+          createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now()
+        } as Transaction;
+      });
+      setTransactions(txs);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  return transactions;
 }
 
 export const txStore = {
-  subscribe(fn: () => void) {
-    listeners.add(fn);
-    return () => {
-      listeners.delete(fn);
-    };
-  },
-  getSnapshot(): Transaction[] {
-    return cache;
-  },
-  add(t: Omit<Transaction, 'id' | 'createdAt'>) {
-    const tx: Transaction = {
+  async add(t: Omit<Transaction, 'id' | 'createdAt'>) {
+    if (!auth.currentUser) throw new Error("Must be logged in");
+    
+    const txData = {
       ...t,
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
+      createdAt: serverTimestamp(),
     };
-    cache = [tx, ...cache];
-    persist();
-    emit();
-    return tx;
+    
+    await addDoc(collection(db, `users/${auth.currentUser.uid}/transactions`), txData);
   },
-  remove(id: string) {
-    cache = cache.filter((t) => t.id !== id);
-    persist();
-    emit();
+  async remove(id: string) {
+    if (!auth.currentUser) return;
+    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/transactions`, id));
   },
-  clearAll() {
-    cache = [];
-    persist();
-    emit();
+  async clearAll() {
+    if (!auth.currentUser) return;
+    const q = query(collection(db, `users/${auth.currentUser.uid}/transactions`));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
   },
 };
-
-export function useTransactions(): Transaction[] {
-  return useSyncExternalStore(txStore.subscribe, txStore.getSnapshot);
-}
